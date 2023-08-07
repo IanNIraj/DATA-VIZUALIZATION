@@ -15,11 +15,11 @@ The dashboard could help business stakeholders visualize and explore data trends
 The scatter plot and bar chart illustrate how interactive dashboards allow users to explore data by clicking on charts, filtering, and updating other charts in real-time.
 
 # Install Required Packages
-pip install matplotlib
+-pip install matplotlib
 
-pip install dash plotly
+-pip install dash plotly
 
-pip install seaborn
+-pip install seaborn
 
 # HOW TO RUN
 
