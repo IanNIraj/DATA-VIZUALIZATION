@@ -16,7 +16,9 @@ The scatter plot and bar chart illustrate how interactive dashboards allow users
 
 # Install Required Packages
 pip install matplotlib
+
 pip install dash plotly
+
 pip install seaborn
 
 # HOW TO RUN
