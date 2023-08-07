@@ -1,37 +1,56 @@
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
-import os
-import openai
+import dash
+from dash import dcc
+from dash import html
+from dash.dependencies import Input, Output
+import plotly.express as px
+import seaborn as sns
 
-app = Flask(__name__)
-CORS(app)
+# Load the Iris dataset
+df = sns.load_dataset('iris')
 
-openai.api_key = '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'  # Replace with your actual API key
+# Initialize the Dash app
+app = dash.Dash(__name__)
 
-def chat_with_chatgpt(prompt):
-    completion = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": str(prompt)}]
-    )
-    message = completion.choices[0].message['content']
-    print(message)
-    return message
+# Create the app layout
+app.layout = html.Div([
+    html.H1("Interactive Iris Dashboard"),
+    dcc.Graph(id="sepal-scatter-plot"),
+    dcc.Graph(id="petal-length-bar-chart"),
+])
 
-@app.route('/api/chat', methods=['POST'])
-def chat():
-    message_data = request.get_json()
-    received_message = message_data.get('message', 'No message received')
-    chatgpt_response = chat_with_chatgpt(received_message)
-    return jsonify({"response": chatgpt_response})
+# Callback for updating sepal scatter plot
+@app.callback(
+    Output("sepal-scatter-plot", "figure"),
+    [Input("petal-length-bar-chart", "clickData")]
+)
+def update_sepal_scatter_plot(click_data):
+    species = df['species'].unique()
+    if click_data:
+        species = [click_data['points'][0]['x']]
+    filtered_data = df[df['species'].isin(species)]
+    fig = px.scatter(filtered_data, x="sepal_length", y="sepal_width", color="species")
+    fig.update_layout(title="Sepal Length vs Sepal Width by Iris Species")
+    return fig
 
-@app.route('/')
-def serve_index():
-    return send_from_directory('.', 'index.html')
+# Callback for updating petal length bar chart
+@app.callback(
+    Output("petal-length-bar-chart", "figure"),
+    [Input("sepal-scatter-plot", "relayoutData")]
+)
+def update_petal_length_bar_chart(relayout_data):
+    if relayout_data is None:
+        filtered_data = df
+    else:
+        xaxis_range = relayout_data.get("xaxis.range", None)
+        if xaxis_range:
+            min_x, max_x = xaxis_range
+            filtered_data = df[(df['sepal_length'] >= min_x) & (df['sepal_length'] <= max_x)]
+        else:
+            filtered_data = df
+    avg_petal_length = filtered_data.groupby("species")["petal_length"].mean().reset_index()
+    fig = px.bar(avg_petal_length, x="species", y="petal_length", title="Average Petal Length by Species")
+    return fig
 
-@app.route('/<path:filename>')
-def serve_static(filename):
-    return send_from_directory('.', filename)
-
-if __name__ == '__main__':
-    app.run()
-
+# Run the Dash app
+if __name__ == "__main__":
+    app.run_server(debug=True)
